@@ -14,7 +14,6 @@ import sys
 import threading
 
 
-sys.path.insert(0, 'C:\\Users\\hcohe\\Desktop\\codes\\SurveyProp-ver2')
 from SurveyProp_classes import *
 
 global_lock_f1 = threading.Lock()
