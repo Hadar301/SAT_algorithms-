@@ -10,6 +10,7 @@ Run the test with:
 ./rand_planted_test_threads.py $1 $2
 
 $1 is the number of litrals N.
+
 $2 is the algorithm:
   WP - Warning Propagation.
   BP - Belief Propagation.
