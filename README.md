@@ -19,7 +19,7 @@ $2 is the algorithm:
 
 The test is running for random planted SAT problem, but can easily change for random SAT problem or CNF file.
 
-
+####Initially started from - https://github.com/thibsej/SurveyPropagation/blob/master/ksat.py ###
 
 
 [1] Braunstein, Alfredo, Marc Mézard, and Riccardo Zecchina. "Survey propagation: An algorithm for satisfiability." Random Structures & Algorithms 27.2 (2005): 201-226.
