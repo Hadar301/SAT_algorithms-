@@ -38,17 +38,18 @@ def absentLiteralCounter(lit_dict):
             counter +=1
     return counter
 
-def RandomPlantedSAT_test(n,c, test_it, algorithm):
+def RandomSAT_test(n,c, test_it, algorithm):
     global T  
     max_iters = 1000
     k = 3 #number of literals per clause 
     m = np.ceil(n*c)
+    m = int(m)
 
     res_arr = np.zeros(11)
     
     for i in range(T//10):
         print("------n={}--c={}---test segment# {}---itertation# {}---\n".format(n,c,test_it,i))
-        prop = RandomPlantedSAT(n,m,k,max_iters)
+        prop = randomKSAT(n,m,k,max_iters)
         
         start  = time.process_time()
         
@@ -104,7 +105,7 @@ def test_results(prop, start):
     if(prop.SAT_validation == True):
         SAT_counter += 1
         
-    hamming_distnace += calc_hamming(prop.literal_assignment.astype(int), prop.assignment.astype(int))
+    #hamming_distnace += calc_hamming(prop.literal_assignment.astype(int), prop.assignment.astype(int))
     iteration_counter += prop.iteration_counter
     num_of_SAT_clauses += prop.num_of_SAT_clauses
     
@@ -112,7 +113,7 @@ def test_results(prop, start):
     if(prop.SAT_validation_majority == True):
         majorityVote_sat_counter += 1
     majorityVote_num_of_SAT_clauses += prop.num_of_SAT_clauses_majority
-    majorityVote_hamming_distnace += calc_hamming(prop.literal_assignment, prop.majority_vote_result.astype(int))
+    #majorityVote_hamming_distnace += calc_hamming(prop.literal_assignment, prop.majority_vote_result.astype(int))
     
     WP_contradiction_counter = prop.wp_contradiction_counter
     
@@ -123,7 +124,7 @@ def test_results(prop, start):
 
 def test_flow(n,c, test_it, algorithm):
     res_arr = []
-    res_arr = RandomPlantedSAT_test(n,c, test_it, algorithm)
+    res_arr = RandomSAT_test(n,c, test_it, algorithm)
     accumulate_results(n, c, res_arr, algorithm)
 
     
@@ -167,7 +168,7 @@ def parse_results():
         c = key[1]
         algorithm = key[2]
         m = np.ceil(n*c)
-        file_name = 'randomPlanted_SAT_'+ str(algorithm)+'_n_'+str(n)+'.csv'       
+        file_name = 'randomSAT_'+ str(algorithm)+'_n_'+str(n)+'.csv'       
 
         res_arr = res_dict[key]/T
         df = df.append({'N and C' : (n,c), 'SAT Percentage': res_arr[0]*100, 'Average Percentage of SAT Clauses':100*res_arr[1]/m, 
@@ -175,7 +176,7 @@ def parse_results():
                                   'Average Percent Dont Care': res_arr[4]/n, 'Average Number of Iterations': res_arr[5], 
                                   'Average number of absent literals': res_arr[6]/n, 'SAT Percentage (MV)': res_arr[7]*100, 
                                   'Average Percentage of SAT Clauses(MV)': 100*res_arr[8]/m, 'Average Percent Hamming distance (MV)': 100*res_arr[9]/n, 
-                                  'Average Number of Contradictions (WP)': 100*res_arr[10]/n}, ignore_index=True)
+                                  'Average Number of Contradictions (WP)': res_arr[10]/n}, ignore_index=True)
             
         df.to_csv(file_name)
 
@@ -187,7 +188,7 @@ def main(n, algorithm):
     print("------------Running test for n={}, With Algoritm {} -------\n".format(n, algorithm))
 
     n = int(n)
-    c=[1,2] #,15,20,25]#,30,40]
+    c=[5, 10] #,15,20,25]#,30,40]
     thread_list = []
     thread_ratio = T//10
     

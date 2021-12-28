@@ -281,6 +281,7 @@ class randomKSAT(object):
         for value in values_arr:
             result *= (1-value)
         return result
+    
     def belief_prop(self):
         # Initialize deltas on the edges
         for (i,a) in self.dgraph.edges():
@@ -329,9 +330,8 @@ class randomKSAT(object):
                         res = 1
                     else:
                         res = numerator/denominator
-                    #print("literal {} has probability to be true of {}".format(key, res))
+
                     self.assignment[key] = np.random.choice([-1,1], size=1, p=[res,1-res])#p=[1-res, res])
-                    #print("literal {} has assigment of {}".format(key, self.assignment[key]))
                 return
         self.SPstatus = 'UNCONVERGED'
         
@@ -712,7 +712,7 @@ class RandomPlantedSAT(randomKSAT):
         self.SAT_validation_majority = None
         
         self.majorityVoteValidation()
-        print(self.num_of_SAT_clauses_majority)
+        #print(self.num_of_SAT_clauses_majority)
         
         self.wp_contradiction_counter = 0
         
@@ -807,11 +807,11 @@ def main():
     #print(prop2.validateFinalAssignmemt()[0])
     lit_dict, result_val = prop2.validateFinalAssignmemt()
     end = time.process_time()
-    print(prop2.SAT_validation)
+    #print(prop2.SAT_validation)
     print("Total time of belief propagation {} seconds".format((end-start)))
-    print(prop2.assignment.astype(int))
-    print(prop2.literal_assignment)
-    print(calc_hamming(prop2.literal_assignment, prop2.assignment.astype(int)))
+    #print(prop2.assignment.astype(int))
+    #print(prop2.literal_assignment)
+    #print(calc_hamming(prop2.literal_assignment, prop2.assignment.astype(int)))
 
     
     '''
