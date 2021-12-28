@@ -163,27 +163,7 @@ class randomKSAT(object):
                 self.WPstatus = 'CONVERGED'
                 return
         self.WPstatus = 'UNCONVERGED'
-        
-#    def wp_update(self):
-#        # Compute cavity fields
-#        for a in range(self.N, self.N + self.M):
-#            if a not in self.dgraph.nodes():
-#                continue
-#            for j in self.dgraph.neighbors(a):
-#                self.dgraph[j][a]['h'] = 0
-#                for b in self.dgraph.neighbors(j):
-#                    if b == a:
-#                        continue
-#                    self.dgraph[j][a]['h'] += self.dgraph[j][b]['u'] * self.dgraph[j][b]['J']
-#        
-#        # Compute warnings
-#        L = self.dgraph.edges()
-#        for (i,a) in L:
-#            self.dgraph[i][a]['u'] = 1
-#            for j in self.dgraph.neighbors(a):
-#                if i == j:
-#                    continue
-#                self.dgraph[i][a]['u'] *= np.heaviside(- self.dgraph[j][a]['h'] * self.dgraph[j][a]['J'], 0)
+
         
     def wp_update(self):
         L = list(self.dgraph.edges())
@@ -255,26 +235,8 @@ class randomKSAT(object):
     
     
     ###########################################################################
-    # SURVEY PROPAGATION
+    # Belief PROPAGATION
     ###########################################################################
- 
-    '''
-     def belief_prop(self):
-        # Initialize deltas on the edges
-        for (i,a) in self.dgraph.edges():
-            self.dgraph[i][a]['delta'] = np.random.rand(1)
-        
-        #Iteration
-        for t in range(self.max_iter):    
-            d = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
-            self.bp_update()
-            d_ = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
-            self.iteration_counter +=1
-            if np.all(np.abs(d - d_) < self.eps):
-                self.SPstatus = 'CONVERGED'
-                return
-        self.SPstatus = 'UNCONVERGED'
- '''   
  
     def multiplicationForBP(self, values_arr):
         result = 1
@@ -365,39 +327,10 @@ class randomKSAT(object):
                 self.dgraph[i][a]['delta'] *= p
         
 
-
-    def survey_id_bp(self):
-        max_it = 0
-        dont_care_ratio = self.dontCarePrecentage()
-        while np.any(self.assignment == 0) and (self.dgraph.number_of_edges() > 0) and (max_it< self.max_iter):#(max_it< self.max_iter): #np.any(self.assignment == 0) and (self.dgraph.number_of_edges() > 0) and (max_it< self.max_iter):
-            self.iteration_counter +=1
-            self.belief_prop()
-            if self.SPstatus == 'UNCONVERGED':
-                print('UNCONVERGED SID')
-                return
-            if np.amax(np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))) > self.eps:
-#                mask = np.array([i in self.dgraph.nodes() for i in range(self.N)])
-                self.sid_localfield()
-                p = np.argmax(np.abs(self.W[:,0] - self.W[:,1]))
-                self.assignment[p] = np.sign(self.W[p,0] - self.W[p,1])
-            else:
-                p = list(self.dgraph.nodes())[0]
-                p = p.astype(int)
-                self.assignment[p] = 1
-            self.decimate_graph()
-            dont_care_ratio = self.dontCarePrecentage()
-            if(self.verbose):
-                print(self.assignment)
-                print("NODES = ", self.dgraph.number_of_nodes())
-                print("EDGES = ", self.dgraph.number_of_edges())
-                print(self.dgraph.edges())
-                print('\n')
-            max_it += 1
-        self.dgraph = self.graph.copy()
-        if max_it == self.max_iter:
-            self.SPstatus = 'UNCONVERGED'
-            print("UNCONVERGED SID")
-
+    ###########################################################################
+    # SURVEY PROPAGATION
+    ###########################################################################
+ 
 
     def survey_prop(self):
         for t in range(self.max_iter):
