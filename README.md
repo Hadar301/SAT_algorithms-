@@ -11,10 +11,10 @@ Run the test with:
 
 $1 is the number of litrals N.
 
-$2 is the algorithm:
-  WP - Warning Propagation.
-  BP - Belief Propagation.
-  SP - Survey Propagation.
+$2 is the algorithm: \n
+  'WP' - Warning Propagation.
+  'BP' - Belief Propagation.
+  'SP' - Survey Propagation.
 
 
 The test is running for random planted SAT and random SAT problems, but can easily change for CNF files.
