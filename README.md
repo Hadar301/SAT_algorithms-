@@ -19,6 +19,7 @@ $2 is the algorithm:
   
   'SP' - Survey Propagation.
 
+For each kind of SAT problem there is also a comparison with the performance of Majority Vote algorithm.
 
 The test is running for random planted SAT and random SAT problems, but can easily change for CNF files.
 
