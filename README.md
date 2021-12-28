@@ -1,6 +1,6 @@
 # SAT_algorithms- 
 
-Implementation of https://onlinelibrary.wiley.com/doi/pdf/10.1002/rsa.20057[1]  
+Implementation of https://onlinelibrary.wiley.com/doi/pdf/10.1002/rsa.20057 [1]  
 
 
 
