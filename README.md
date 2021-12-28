@@ -17,7 +17,7 @@ $2 is the algorithm:
   SP - Survey Propagation.
 
 
-The test is running for random planted SAT problem, but can easily change for random SAT problem or CNF file.
+The test is running for random planted SAT and random SAT problems, but can easily change for CNF files.
 
 #### SurveyProp_classes.py Initially started from - https://github.com/thibsej/SurveyPropagation/blob/master/ksat.py ###
 
