@@ -71,43 +71,20 @@ class randomKSAT(object):
             self.assignment = np.zeros(self.N)
         else:
             self.assignment = np.random.choice([-1,1], size=self.N, p=[0.5, 0.5])
-            
-            
+                        
         
         if(self.verbose):
             print(self.dgraph.edges())
 
         
-    def initialize_graph(self):
-        G = nx.Graph()
-        G.add_nodes_from(np.arange(self.N + self.M))
-        for t in range(self.M):
-            B = np.unique(np.random.choice(self.N, self.K))
-            self.literals_per_caluse.append(B.tolist())
-            J = np.random.binomial(1, .5, size = np.shape(B))
-            J[J==0] = -1
-            self.literals_per_caluse_T_or_F.append(J.tolist())
-            G.add_edges_from([(x, self.N + t) for x in B])
-            self.countLiteralInClause(B, J)
-            for i in range(len(B)):
-                G[B[i]][self.N + t]['J'] = J[i]
-                G[B[i]][self.N + t]['u'] = np.random.binomial(1, .5)
-                G[B[i]][self.N + t]['h'] = 0
-                G[B[i]][self.N + t]['delta'] = np.random.rand(1)
-        return G
+
     
-    def initializeDictionary(self):
-        return dict.fromkeys(list(range(-self.N+1, self.N)),0)
     
-    def countLiteralInClause(self, clause, signs):
-        for i in range(len(clause)):
-            literal = clause[i]
-            if(signs[i] == -1):
-                key = literal
-            elif(signs[i] == 1):
-                key = -1*literal
-            self.majority_vote_dictionary[key] +=1
-        
+    
+    ###########################################################################
+    # Majority Vote
+    ###########################################################################        
+    
     def MajorityVoteSolver(self):
         res = np.zeros(self.N).astype('int8')
         for key in self.majority_vote_dictionary:
@@ -123,32 +100,7 @@ class randomKSAT(object):
                 break            
         return res
 
-            
-        
     
-    def decimate_graph(self):
-        for i in range(self.N):
-            if self.assignment[i] == 0:
-                continue
-            if i not in self.dgraph.nodes():
-                continue
-            l = []
-            for a in self.dgraph.neighbors(i):
-                if self.dgraph[i][a]['J'] * self.assignment[i] == -1:
-                    l.append(a)
-            for a in l:
-                self.dgraph.remove_node(a)
-            self.dgraph.remove_node(i)
-            
-    def check_truth(self):
-        l = []
-        for a in range(self.N, self.N + self.M):
-            for i in self.graph.neighbors(a):
-                if self.graph[i][a]['J'] * self.assignment[i] == -1:
-                    l.append(a)
-                    break
-        return len(l) == self.M
-            
     ###########################################################################
     # WARNING PROPAGATION
     ###########################################################################
@@ -430,7 +382,67 @@ class randomKSAT(object):
         self.W[:,1] = pi[:,1] / tot
         self.W[:,2] = pi[:,2] / tot
     
+
+    ###########################################################################
+    # SERVICE FUNCTIONS
+    ###########################################################################
+
+    def initialize_graph(self):
+        G = nx.Graph()
+        G.add_nodes_from(np.arange(self.N + self.M))
+        for t in range(self.M):
+            B = np.unique(np.random.choice(self.N, self.K))
+            self.literals_per_caluse.append(B.tolist())
+            J = np.random.binomial(1, .5, size = np.shape(B))
+            J[J==0] = -1
+            self.literals_per_caluse_T_or_F.append(J.tolist())
+            G.add_edges_from([(x, self.N + t) for x in B])
+            self.countLiteralInClause(B, J)
+            for i in range(len(B)):
+                G[B[i]][self.N + t]['J'] = J[i]
+                G[B[i]][self.N + t]['u'] = np.random.binomial(1, .5)
+                G[B[i]][self.N + t]['h'] = 0
+                G[B[i]][self.N + t]['delta'] = np.random.rand(1)
+        return G
     
+    def initializeDictionary(self):
+        return dict.fromkeys(list(range(-self.N+1, self.N)),0)
+    
+    def countLiteralInClause(self, clause, signs):
+        for i in range(len(clause)):
+            literal = clause[i]
+            if(signs[i] == -1):
+                key = literal
+            elif(signs[i] == 1):
+                key = -1*literal
+            self.majority_vote_dictionary[key] +=1
+        
+            
+    
+    def decimate_graph(self):
+        for i in range(self.N):
+            if self.assignment[i] == 0:
+                continue
+            if i not in self.dgraph.nodes():
+                continue
+            l = []
+            for a in self.dgraph.neighbors(i):
+                if self.dgraph[i][a]['J'] * self.assignment[i] == -1:
+                    l.append(a)
+            for a in l:
+                self.dgraph.remove_node(a)
+            self.dgraph.remove_node(i)
+            
+    def check_truth(self):
+        l = []
+        for a in range(self.N, self.N + self.M):
+            for i in self.graph.neighbors(a):
+                if self.graph[i][a]['J'] * self.assignment[i] == -1:
+                    l.append(a)
+                    break
+        return len(l) == self.M
+    
+
     def validateFinalAssignmemt(self):
          assignments = self.assignment.astype(int)
          results_arr = []
@@ -733,7 +745,7 @@ def main():
     #prop3 = copy.deepcopy(prop1)
     
     start = time.process_time()
-    prop2.belief_prop()
+    prop2.warning_id()
     #print("BP Status = ", prop2.BPstatus)
     #print("Satisfiability = ", prop2.sat)
     #print(prop2.check_truth())
