@@ -23,7 +23,6 @@ For each kind of SAT problem there is also a comparison with the performance of 
 
 The test is running for random planted SAT and random SAT problems, but can easily change for CNF files.
 
-#### SurveyProp_classes.py Initially started from - https://github.com/thibsej/SurveyPropagation/blob/master/ksat.py ###
 
 
 [1] Braunstein, Alfredo, Marc Mézard, and Riccardo Zecchina. "Survey propagation: An algorithm for satisfiability." Random Structures & Algorithms 27.2 (2005): 201-226.
