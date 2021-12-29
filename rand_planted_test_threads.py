@@ -13,6 +13,8 @@ import time
 import sys
 import threading
 
+
+sys.path.insert(0, 'C:\\Users\\hcohe\\Desktop\\codes\\SurveyProp-ver3')
 from SurveyProp_classes import *
 
 global_lock_f1 = threading.Lock()
@@ -54,11 +56,10 @@ def RandomPlantedSAT_test(n,c, test_it, algorithm):
             prop.warning_id()
             res_arr += test_results(prop,start)
         elif(algorithm == 'BP'):
-            #prop.survey_id_bp()
             prop.belief_prop()
             res_arr += test_results(prop,start)
         elif(algorithm == 'SP'):
-            prop.survey_id_sp()
+            prop.surveyID()
             res_arr += test_results(prop,start)
 
         del prop

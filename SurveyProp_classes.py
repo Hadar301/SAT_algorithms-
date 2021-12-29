@@ -208,44 +208,7 @@ class randomKSAT(object):
             d_ = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
             self.iteration_counter +=1
             if np.all(np.abs(d - d_) < self.eps):
-                pos_dict = {}
-                neg_dict = {}            
-                
-                for (node,clause) in nx.get_edge_attributes(self.dgraph, 'delta'):
-                    sign = self.dgraph[node][clause]['J']
-                    if(sign == -1):
-                        #append to pos_dict
-                        if(node in pos_dict):
-                            pos_dict[node].append(self.dgraph[node][clause]['delta'])
-                        else:
-                            pos_dict[node] = [self.dgraph[node][clause]['delta']]
-                    elif(sign == 1):
-                        #append to neg_dict
-                        if(node in neg_dict):
-                            neg_dict[node].append(self.dgraph[node][clause]['delta'])
-                        else:
-                            neg_dict[node] = [self.dgraph[node][clause]['delta']]
-
-                for key in range(self.N):
-                    numerator = 1
-                    denominator = 1
-                    if(key in pos_dict):
-                        delta_arr1 = pos_dict[key]
-                        numerator = self.multiplicationForBP(delta_arr1)
-                        denominator = numerator
-                    else:
-                        numerator = 0
-                        
-                    if(key in neg_dict):
-                        delta_arr2 = neg_dict[key]
-                        denominator += self.multiplicationForBP(delta_arr2)
-                    
-                    if(denominator == 0):
-                        res = 1
-                    else:
-                        res = numerator/denominator
-
-                    self.assignment[key] = np.random.choice([-1,1], size=1, p=[res,1-res])#p=[1-res, res])
+                self.bp_assignment()
                 return
         self.SPstatus = 'UNCONVERGED'
         
@@ -277,6 +240,47 @@ class randomKSAT(object):
                     break
                 p = self.dgraph[j][a]['P_u'] / tot
                 self.dgraph[i][a]['delta'] *= p
+                
+    def bp_assignment(self):
+        pos_dict = {}
+        neg_dict = {}            
+                
+        for (node,clause) in nx.get_edge_attributes(self.dgraph, 'delta'):
+            sign = self.dgraph[node][clause]['J']
+            if(sign == -1):
+                #append to pos_dict
+                if(node in pos_dict):
+                    pos_dict[node].append(self.dgraph[node][clause]['delta'])
+                else:
+                    pos_dict[node] = [self.dgraph[node][clause]['delta']]
+            elif(sign == 1):
+                #append to neg_dict
+                if(node in neg_dict):
+                    neg_dict[node].append(self.dgraph[node][clause]['delta'])
+                else:
+                    neg_dict[node] = [self.dgraph[node][clause]['delta']]
+
+        for key in range(self.N):
+            numerator = 1
+            denominator = 1
+            if(key in pos_dict):
+                delta_arr1 = pos_dict[key]
+                numerator = self.multiplicationForBP(delta_arr1)
+                denominator = numerator
+            else:
+                numerator = 0
+                        
+            if(key in neg_dict):
+                delta_arr2 = neg_dict[key]
+                denominator += self.multiplicationForBP(delta_arr2)
+                    
+            if(denominator == 0):
+                res = 1
+            else:
+                res = numerator/denominator
+
+            self.assignment[key] = np.random.choice([-1,1], size=1, p=[res,1-res])#p=[1-res, res])
+            
         
 
     ###########################################################################
@@ -284,17 +288,7 @@ class randomKSAT(object):
     ###########################################################################
  
 
-    def survey_prop(self):
-        for t in range(self.max_iter):
-            d = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
-            self.sp_update()
-            d_ = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
-            self.iteration_counter +=1
-            
-            if(np.all(np.abs(d-d_))<self.eps):
-                self.SPstatus = 'CONVERGED'
-                return
-            self.SPstatus = 'UNCONVERGED'
+
 
     def sp_update(self):
         L = list(self.dgraph.edges())
@@ -320,45 +314,17 @@ class randomKSAT(object):
             for j in self.dgraph.neighbors(a):
                 if i == j:
                     continue
-                tot = (self.dgraph[j][a]['P_u'] + self.dgraph[j][a]['P_s'] + self.dgraph[j][a]['P_0'] + self.dgraph[j][a]['P_c'])
+                tot = (self.dgraph[j][a]['P_u'] + self.dgraph[j][a]['P_s'] + self.dgraph[j][a]['P_0'])# + self.dgraph[j][a]['P_c'])
                 if tot == 0:
                     self.dgraph[i][a]['delta'] = 1
                     break
                 p = self.dgraph[j][a]['P_u'] / tot
                 self.dgraph[i][a]['delta'] *= p
+    
+
+            
 
 
-    def survey_id_sp(self):
-        max_it = 0
-        dont_care_ratio = self.dontCarePrecentage()
-        while np.any(self.assignment == 0) and (self.dgraph.number_of_edges() > 0) and (max_it< self.max_iter):
-            self.iteration_counter +=1
-            self.survey_prop()
-            if self.SPstatus == 'UNCONVERGED':
-                print('UNCONVERGED SID')
-                return
-            if np.amax(np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))) > self.eps:
-#                mask = np.array([i in self.dgraph.nodes() for i in range(self.N)])
-                self.sid_localfield()
-                p = np.argmax(np.abs(self.W[:,0] - self.W[:,1]))
-                self.assignment[p] = np.sign(self.W[p,0] - self.W[p,1])
-            else:
-                p = list(self.dgraph.nodes())[0]
-                p = p.astype(int)
-                self.assignment[p] = 1
-            self.decimate_graph()
-            dont_care_ratio = self.dontCarePrecentage()
-            if(self.verbose):
-                print(self.assignment)
-                print("NODES = ", self.dgraph.number_of_nodes())
-                print("EDGES = ", self.dgraph.number_of_edges())
-                print(self.dgraph.edges())
-                print('\n')
-            max_it += 1
-        self.dgraph = self.graph.copy()
-        if max_it == self.max_iter:
-            self.SPstatus = 'UNCONVERGED'
-            print("UNCONVERGED SID")
         
     def sid_localfield(self):
         prod_tmp = np.ones((self.N, 2))
@@ -381,8 +347,43 @@ class randomKSAT(object):
         self.W[:,0] = pi[:,0] / tot
         self.W[:,1] = pi[:,1] / tot
         self.W[:,2] = pi[:,2] / tot
+        
+        
+    def survey_prop(self):
+        for (i,a) in self.dgraph.edges():
+            self.dgraph[i][a]['delta'] = np.random.rand(1)
+        for t in range(self.max_iter):
+            d = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
+            self.sp_update()
+            d_ = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
+            self.iteration_counter +=1
+            if(np.all(np.abs(d-d_))<self.eps):
+                self.SPstatus = 'CONVERGED'
+                return
+        self.SPstatus = 'UNCONVERGED'
+        
+    def surveyID(self):
+        self.survey_prop()
+        if(self.SPstatus == 'CONVERGED'):
+            if(self.nonTrivialSurvey() == True):
+                while(self.dgraph.number_of_edges() > 0):
+                    self.sid_localfield()
+                    p = np.argmax(np.abs(self.W[:,0] - self.W[:,1]))
+                    self.assignment[p] = np.sign(self.W[p,0] - self.W[p,1])
+                    self.decimate_graph()
+            else:
+                ##need to implement wlaksat (random walk)
+                self.assignment = np.random.choice([-1,1], size=self.N, p=[0.5, 0.5])
+        else:
+            self.SAT_validation = False
+            return
     
-
+    def nonTrivialSurvey(self):
+        for (i,a) in self.dgraph.edges():
+            if(self.dgraph[i][a]['delta'] != 0):
+                return True
+        return False
+        
     ###########################################################################
     # SERVICE FUNCTIONS
     ###########################################################################
@@ -740,12 +741,19 @@ def main():
     print(counter)'''
     
 
-    prop2 = RandomPlantedSAT(30,20*30,3,10000) #randomKSAT(2,20,3,100) #RandomPlantedSAT(3,300,3,1000) 
+    prop2 = RandomPlantedSAT(50,50*25,3,10000) #randomKSAT(2,20,3,100) #RandomPlantedSAT(3,300,3,1000) 
     #prop2 = copy.deepcopy(prop1)
     #prop3 = copy.deepcopy(prop1)
     
     start = time.process_time()
-    prop2.warning_id()
+    #prop2.belief_prop()#warning_id()#survey_id_sp()
+    prop2.surveyID()
+    #prop2.belief_prop()
+    #prop2.warning_id()
+    print(prop2.iteration_counter)
+    lit_dict, result_val = prop2.validateFinalAssignmemt()
+    print(prop2.SAT_validation)
+    
     #print("BP Status = ", prop2.BPstatus)
     #print("Satisfiability = ", prop2.sat)
     #print(prop2.check_truth())
@@ -753,10 +761,10 @@ def main():
     lit_dict, result_val = prop2.validateFinalAssignmemt()
     end = time.process_time()
     #print(prop2.SAT_validation)
-    print("Total time of belief propagation {} seconds".format((end-start)))
+    print("Total time of survey propagation {} seconds".format((end-start)))
     #print(prop2.assignment.astype(int))
     #print(prop2.literal_assignment)
-    #print(calc_hamming(prop2.literal_assignment, prop2.assignment.astype(int)))
+    print(calc_hamming(prop2.literal_assignment, prop2.assignment.astype(int)))
 
     
     '''
@@ -826,3 +834,52 @@ def main():
     
 if __name__ == "__main__":
     main()
+
+
+'''
+    def survey_id_sp(self):
+        max_it = 0
+        dont_care_ratio = self.dontCarePrecentage()
+        while np.any(self.assignment == 0) and (self.dgraph.number_of_edges() > 0):# and (max_it< self.max_iter):
+            #self.iteration_counter +=1
+            self.survey_prop()
+            if self.SPstatus == 'UNCONVERGED':
+                print('UNCONVERGED SID')
+                return
+            if np.amax(np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))) > self.eps:
+#                mask = np.array([i in self.dgraph.nodes() for i in range(self.N)])
+                self.sid_localfield()
+                p = np.argmax(np.abs(self.W[:,0] - self.W[:,1]))
+                self.assignment[p] = np.sign(self.W[p,0] - self.W[p,1])
+            else:
+                p = list(self.dgraph.nodes())[0]
+                p = p.astype(int)
+                self.assignment[p] = 1
+            self.decimate_graph()
+            dont_care_ratio = self.dontCarePrecentage()
+            if(self.verbose):
+                print(self.assignment)
+                print("NODES = ", self.dgraph.number_of_nodes())
+                print("EDGES = ", self.dgraph.number_of_edges())
+                print(self.dgraph.edges())
+                print('\n')
+            max_it += 1
+        self.dgraph = self.graph.copy()
+        if max_it == self.max_iter:
+            self.SPstatus = 'UNCONVERGED'
+            print("UNCONVERGED SID")
+            
+            
+            
+    def survey_prop(self):
+        for t in range(self.max_iter):
+            d = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
+            self.sp_update()
+            d_ = np.array(list(nx.get_edge_attributes(self.dgraph, 'delta').values()))
+            self.iteration_counter +=1
+            if(np.all(np.abs(d-d_))<self.eps):
+                self.SPstatus = 'CONVERGED'
+                return
+            self.SPstatus = 'UNCONVERGED'
+            
+'''
