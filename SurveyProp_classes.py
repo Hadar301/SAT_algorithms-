@@ -67,6 +67,8 @@ class randomKSAT(object):
 
         self.wp_contradiction_counter = 0
         
+        self.literal_assignment = np.zeros(self.N)
+        
         if(self.rand_assignment == False):
             self.assignment = np.zeros(self.N)
         else:
@@ -103,8 +105,7 @@ class randomKSAT(object):
     
     ###########################################################################
     # WARNING PROPAGATION
-    ###########################################################################
-    
+    ###########################################################################   
     def warning_prop(self):
         for t in range(self.max_iter):
             d = set(nx.get_edge_attributes(self.dgraph, 'u').items())
@@ -279,8 +280,20 @@ class randomKSAT(object):
             else:
                 res = numerator/denominator
 
-            self.assignment[key] = np.random.choice([-1,1], size=1, p=[res,1-res])#p=[1-res, res])
+            #self.assignment[key] = np.random.choice([-1,1], size=1, p=[res,1-res])#p=[1-res, res])
             
+            '''
+            if the probability to be FLASE is greater than 0.6, assign the literal to -1 (flase)
+            if the probability to be TRUE is greater than 0.6, assign the literal to 1 (true)
+            else, assign 0 (don't care) 
+            '''
+            if(res > 0.6):
+                self.assignment[key] = -1 
+            elif (1-res > 0.6):
+                self.assignment[key] = 1
+            else:
+                self.assignment[key] = 0
+             
         
 
     ###########################################################################
@@ -338,8 +351,8 @@ class randomKSAT(object):
         pi[:,0] = (1 - prod_tmp[:,0]) * prod_tmp[:,1] # V plus
         pi[:,1] = (1 - prod_tmp[:,1]) * prod_tmp[:,0]
         pi[:,2] = prod_tmp[:,0] * prod_tmp[:,1]
-        pi[:,2] = (1 - prod_tmp[:,0]) * (1 - prod_tmp[:,1])
-        tot = (pi[:,0] + pi[:,1] + pi[:,2] + pi[:,3])
+        #pi[:,3] = (1 - prod_tmp[:,0]) * (1 - prod_tmp[:,1])
+        tot = (pi[:,0] + pi[:,1] + pi[:,2])# + pi[:,3])
         pi[(tot == 0),0] = 0
         pi[(tot == 0),1] = 0
         pi[(tot == 0),2] = 0
@@ -370,7 +383,11 @@ class randomKSAT(object):
                     self.sid_localfield()
                     p = np.argmax(np.abs(self.W[:,0] - self.W[:,1]))
                     self.assignment[p] = np.sign(self.W[p,0] - self.W[p,1])
+                    if(self.W[p,0] == self.W[p,1]):
+                        p = int(list(self.dgraph.nodes())[0])
+                        self.assignment[p] = np.random.choice([-1,1], size=1, p=[0.5, 0.5])
                     self.decimate_graph()
+                return
             else:
                 ##need to implement wlaksat (random walk)
                 self.assignment = np.random.choice([-1,1], size=self.N, p=[0.5, 0.5])
@@ -662,6 +679,8 @@ class RandomPlantedSAT(randomKSAT):
         
         self.wp_contradiction_counter = 0
         
+        self.literal_warning_flags = np.zeros(self.N)
+        
         if(self.verbose):
             print(self.dgraph.edges()) 
     
@@ -674,17 +693,17 @@ class RandomPlantedSAT(randomKSAT):
             J = np.random.binomial(1, .5, size = np.shape(B))
             J[J==0] = -1
             if(self.approvedClause(B, J) == True):
-                t=t+1
+                #t=t+1
                 self.literals_per_caluse.append(B.tolist())
                 self.literals_per_caluse_T_or_F.append(J.tolist())
                 G.add_edges_from([(x, self.N + t) for x in B])
                 self.countLiteralInClause(B, J)
-                
                 for i in range(len(B)):
                     G[B[i]][self.N + t]['J'] = J[i]
                     G[B[i]][self.N + t]['u'] = np.random.binomial(1, .5)
                     G[B[i]][self.N + t]['h'] = 0
                     G[B[i]][self.N + t]['delta'] = np.random.rand(1)
+                t+=1
             #else:
                 #print("unSAT clause, fine new one")
         
@@ -741,15 +760,15 @@ def main():
     print(counter)'''
     
 
-    prop2 = RandomPlantedSAT(50,50*25,3,10000) #randomKSAT(2,20,3,100) #RandomPlantedSAT(3,300,3,1000) 
+    prop2 = RandomPlantedSAT(5,30,3,10000) #randomKSAT(2,20,3,100) #RandomPlantedSAT(3,300,3,1000) 
     #prop2 = copy.deepcopy(prop1)
     #prop3 = copy.deepcopy(prop1)
     
     start = time.process_time()
     #prop2.belief_prop()#warning_id()#survey_id_sp()
-    prop2.surveyID()
+    #prop2.surveyID()
     #prop2.belief_prop()
-    #prop2.warning_id()
+    prop2.warning_id()
     print(prop2.iteration_counter)
     lit_dict, result_val = prop2.validateFinalAssignmemt()
     print(prop2.SAT_validation)
@@ -761,7 +780,7 @@ def main():
     lit_dict, result_val = prop2.validateFinalAssignmemt()
     end = time.process_time()
     #print(prop2.SAT_validation)
-    print("Total time of survey propagation {} seconds".format((end-start)))
+    print("Total time of warning propagation {} seconds".format((end-start)))
     #print(prop2.assignment.astype(int))
     #print(prop2.literal_assignment)
     print(calc_hamming(prop2.literal_assignment, prop2.assignment.astype(int)))
