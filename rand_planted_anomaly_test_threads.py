@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Dec 19 14:07:51 2021
+Created on Tue Jan 25 16:12:39 2022
 
 @author: hcohe
 """
-
 
 import numpy as np
 import pandas as pd
@@ -24,7 +23,7 @@ T = 20 #number of rounds
 res_dict={}
 res_per_itration_dict = {}
 
-class_type = RandomPlantedSAT
+class_type = RandomPlantedSAT_coreAnomaly
 
 def calc_hamming(vec1, vec2):
     ham_dist = 0
@@ -191,7 +190,7 @@ def parse_results(class_type):
         n = key[0]
         c = key[1]
         algorithm = key[2]
-        m = np.ceil(n*c)
+        m = np.ceil(n*c) + 150
         file_name = str(class_type.__name__)+'_'+ str(algorithm)+'_n_'+str(n)+'.csv'       
 
         res_arr = res_dict[key]/T

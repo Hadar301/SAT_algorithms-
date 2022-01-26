@@ -9,6 +9,7 @@ Created on Sun Oct 17 12:20:04 2021
 import numpy as np
 import networkx as nx
 from random import shuffle
+import random
 
 import time
 import math
@@ -42,6 +43,11 @@ class randomKSAT(object):
         
         self.majority_vote_dictionary = self.initializeDictionary()
         
+        self.warnings_dictionary = self.initializeDictionary()
+        
+        
+        self.num_of_additional_clauses_for_anomaly = 0
+        
         self.graph = self.initialize_graph()
         self.dgraph = self.graph.copy()
         
@@ -68,6 +74,9 @@ class randomKSAT(object):
         self.wp_contradiction_counter = 0
         
         self.literal_assignment = np.zeros(self.N)
+        
+        
+        
         
         if(self.rand_assignment == False):
             self.assignment = np.zeros(self.N)
@@ -131,14 +140,16 @@ class randomKSAT(object):
                     if b == a:
                         continue
                     self.dgraph[j][a]['h'] += self.dgraph[j][b]['u'] * self.dgraph[j][b]['J']
-        
+
             # Compute warnings
                 self.dgraph[i][a]['u'] = 1
                 for j in self.dgraph.neighbors(a):
                     if i == j:
                         continue
                     self.dgraph[i][a]['u'] *= np.heaviside(- self.dgraph[j][a]['h'] * self.dgraph[j][a]['J'], 0)
-                    
+
+
+                        
     def warning_id(self):
         self.assignment = np.random.choice([-1,1], size=self.N, p=[0.5, 0.5])
         while(self.WPstatus == None): #np.any(self.assignment == 0):
@@ -333,10 +344,6 @@ class randomKSAT(object):
                     break
                 p = self.dgraph[j][a]['P_u'] / tot
                 self.dgraph[i][a]['delta'] *= p
-    
-
-            
-
 
         
     def sid_localfield(self):
@@ -465,7 +472,7 @@ class randomKSAT(object):
          assignments = self.assignment.astype(int)
          results_arr = []
          literal_dict = {}
-         self.num_of_SAT_clauses = self.M
+         self.num_of_SAT_clauses = self.M + self.num_of_additional_clauses_for_anomaly
          result = False
          for i in range(0, self.N):
             literal_dict[i] = "Don't Care"
@@ -504,7 +511,7 @@ class randomKSAT(object):
                 literal_dict[i] = 'False'
              #print("\nThis expression is SAT the literals values are:\n\n{}".format(literal_dict))
              
-         if(self.num_of_SAT_clauses == self.M):
+         if(self.num_of_SAT_clauses == self.M + self.num_of_additional_clauses_for_anomaly):
              self.SAT_validation = True
          else:
              self.SAT_validation = False
@@ -570,6 +577,8 @@ class CNF_KSAT(randomKSAT):
         #Array that tells us if a literal is True or False in a clause
         self.literals_per_caluse_T_or_F = []
         
+        self.num_of_additional_clauses_for_anomaly = 0
+        
         self.graph = self.initialize_graph()
         
         self.dgraph = self.graph.copy()
@@ -582,6 +591,8 @@ class CNF_KSAT(randomKSAT):
         self.U = np.zeros((self.N, 2))
         # for survey propagation
         self.W = np.zeros((self.N, 3))
+        
+        
         
         if(self.rand_assignment == False):
             self.assignment = np.zeros(self.N)
@@ -648,9 +659,12 @@ class RandomPlantedSAT(randomKSAT):
         
         self.majority_vote_dictionary = self.initializeDictionary()
         
+        self.warnings_dictionary = self.initializeDictionary()
+        
         #self.initial_literal_assingment = np.random.choice([0, 1], size=self.N, p=[.5, .5])
         self.literal_assignment = np.random.choice([-1,1], size=self.N, p=[0.5, 0.5])
         #print(self.literal_assignment)
+        self.num_of_additional_clauses_for_anomaly = 0
         self.graph = self.initialize_graph()
         
         
@@ -679,6 +693,7 @@ class RandomPlantedSAT(randomKSAT):
         
         self.wp_contradiction_counter = 0
         
+        
         self.literal_warning_flags = np.zeros(self.N)
         
         if(self.verbose):
@@ -698,6 +713,7 @@ class RandomPlantedSAT(randomKSAT):
                 self.literals_per_caluse_T_or_F.append(J.tolist())
                 G.add_edges_from([(x, self.N + t) for x in B])
                 self.countLiteralInClause(B, J)
+
                 for i in range(len(B)):
                     G[B[i]][self.N + t]['J'] = J[i]
                     G[B[i]][self.N + t]['u'] = np.random.binomial(1, .5)
@@ -729,7 +745,156 @@ class RandomPlantedSAT(randomKSAT):
         return clause_result
     
 
+class RandomPlantedSAT_coreAnomaly(randomKSAT):
+    def __init__(self, N, M, K, max_iter, eps=1e-3, verbose=False):
+        self.N = N
+        self.M = M
+        self.K = K
+        self.max_iter = max_iter
+        self.eps = eps
+        self.verbose = verbose
+        
+        #Array of literals per clause for result validation
+        self.literals_per_caluse = []
+        #Array that tells us if a literal is True or False in a clause
+        self.literals_per_caluse_T_or_F = []
+        
+        self.majority_vote_dictionary = self.initializeDictionary()
+        
+        self.warnings_dictionary = self.initializeDictionary()
+        
+        #self.initial_literal_assingment = np.random.choice([0, 1], size=self.N, p=[.5, .5])
+        self.literal_assignment = np.random.choice([-1,1], size=self.N, p=[0.5, 0.5])
+        #print(self.literal_assignment)
+        self.num_of_additional_clauses_for_anomaly = 150
+        self.graph = self.initialize_graph()
+        
+        
+        self.majority_vote_result = np.array(self.MajorityVoteSolver())
+                
+        self.dgraph = self.graph.copy()
+        self.WPstatus = None
+        self.SPstatus = None
+        self.sat = None
+        self.status = None
+        self.assignment = np.zeros(self.N)
+        # for warning propagation
+        self.H = np.zeros(self.N)
+        self.U = np.zeros((self.N, 2))
+        # for survey propagation
+        self.W = np.zeros((self.N, 3))
+        
+        self.SAT_validation = None
+        self.iteration_counter = 0
+        self.num_of_SAT_clauses = self.M
+        self.num_of_SAT_clauses_majority = self.M
+        self.SAT_validation_majority = None
+        
+        self.majorityVoteValidation()
+        #print(self.num_of_SAT_clauses_majority)
+        
+        self.wp_contradiction_counter = 0
+        
+        
+        
+        self.literal_warning_flags = np.zeros(self.N)
+        
+        if(self.verbose):
+            print(self.dgraph.edges()) 
+    
+    def initialize_graph(self):
+        G = nx.Graph()
+        if(self.N >=50):
+            G.add_nodes_from(np.arange(self.N + self.M + self.num_of_additional_clauses_for_anomaly))
+        t=0
+        anomaly_nodes_counter = self.M 
+        while(t<self.M):
+            B = np.unique(np.random.choice(self.N, self.K))
+            J = np.random.binomial(1, .5, size = np.shape(B))
+            J[J==0] = -1
+            if(self.approvedClause(B, J) == True):
+                #t=t+1
+                self.literals_per_caluse.append(B.tolist())
+                self.literals_per_caluse_T_or_F.append(J.tolist())
+                G.add_edges_from([(x, self.N + t) for x in B])
+                self.countLiteralInClause(B, J)
 
+                for i in range(len(B)):
+                    G[B[i]][self.N + t]['J'] = J[i]
+                    G[B[i]][self.N + t]['u'] = np.random.binomial(1, .5)
+                    G[B[i]][self.N + t]['h'] = 0
+                    G[B[i]][self.N + t]['delta'] = np.random.rand(1)
+                t+=1
+
+
+
+        if(self.N >= 50):
+            support_literals_list = random.sample(list(range(self.N)), 50)
+            while(anomaly_nodes_counter < self.M + self.num_of_additional_clauses_for_anomaly):
+                counter = 0
+                support_litral = random.sample(support_literals_list, 1)[0]
+                while(counter<3):
+                    B=[]
+                    J=[]
+                    B.append(support_litral)
+                    J = np.random.binomial(1, .5, size = np.shape(B))
+                    J[J==0] = -1
+            
+
+                    while(self.approvedClause(B, J) != True):
+                        if(J[0] == -1):
+                            J[0] = 1
+                        else:
+                            J[0] = -1
+                        unsupported_literals = random.sample(support_literals_list, 2)
+                        while(support_litral in unsupported_literals):
+                            unsupported_literals = random.sample(support_literals_list, 2)
+                        temp_J = np.random.binomial(1, .5, size = np.shape(unsupported_literals))
+                        temp_J[temp_J==0] = -1
+                        while(self.approvedClause(unsupported_literals, temp_J) != False):
+                            temp_J = np.random.binomial(1, .5, size = np.shape(unsupported_literals))
+                            temp_J[temp_J==0] = -1
+                            
+                        B.extend(unsupported_literals)
+                        J = np.append(J, temp_J)
+                        self.literals_per_caluse.append(B)
+                        self.literals_per_caluse_T_or_F.append(J.tolist())
+                        G.add_edges_from([(x, self.N + anomaly_nodes_counter) for x in B])
+                        self.countLiteralInClause(B, J)
+                        
+                        if(self.approvedClause(B, J) != True):
+                            print("!!!!!!!!!!!!!!!!!!!")
+                        for i in range(len(B)):
+                            G[B[i]][self.N + anomaly_nodes_counter]['J'] = J[i]
+                            G[B[i]][self.N + anomaly_nodes_counter]['u'] = np.random.binomial(1, .5)
+                            G[B[i]][self.N + anomaly_nodes_counter]['h'] = 0
+                            G[B[i]][self.N + anomaly_nodes_counter]['delta'] = np.random.rand(1)
+                        anomaly_nodes_counter +=1
+                        counter+=1
+
+                        #print(anomaly_nodes_counter)
+        #print(len(self.literals_per_caluse))
+        return G
+        
+    def approvedClause(self, B, J):
+        clause_values=[]
+        clause_result = False
+        
+        for i in range(0,len(B)):
+            literal = B[i]
+            if(self.literal_assignment[literal] == 1 and J[i] == -1):
+                clause_values.append(True)
+            elif(self.literal_assignment[literal] == 1 and J[i] == 1):
+                clause_values.append(False)
+            elif(self.literal_assignment[literal] == -1 and J[i] == -1):
+                clause_values.append(False)
+            elif(self.literal_assignment[literal] == -1 and J[i] == 1):
+                clause_values.append(True)
+        
+        for value in clause_values:
+            clause_result = clause_result or value
+        return clause_result
+    
 def calc_hamming(vec1, vec2):
     ham_dist = 0
     
@@ -760,7 +925,7 @@ def main():
     print(counter)'''
     
 
-    prop2 = RandomPlantedSAT(5,30,3,10000) #randomKSAT(2,20,3,100) #RandomPlantedSAT(3,300,3,1000) 
+    prop2 = RandomPlantedSAT(50,50*10,3,100) #randomKSAT(2,20,3,100) #RandomPlantedSAT(3,300,3,1000) 
     #prop2 = copy.deepcopy(prop1)
     #prop3 = copy.deepcopy(prop1)
     
@@ -783,8 +948,15 @@ def main():
     print("Total time of warning propagation {} seconds".format((end-start)))
     #print(prop2.assignment.astype(int))
     #print(prop2.literal_assignment)
-    print(calc_hamming(prop2.literal_assignment, prop2.assignment.astype(int)))
+    #print(calc_hamming(prop2.literal_assignment, prop2.assignment.astype(int)))
+    #print(prop2.assignment.astype(int))
 
+    print("#######################")
+    prop3 = RandomPlantedSAT_coreAnomaly(50,50*10,3,100)
+    prop3.belief_prop()
+    print(prop3.iteration_counter)
+    lit_dict, result_val = prop3.validateFinalAssignmemt()
+    print(prop3.SAT_validation)
     
     '''
     print(prop1.majority_vote_dictionary)

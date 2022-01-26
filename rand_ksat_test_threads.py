@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Dec 19 14:07:51 2021
+Created on Tue Jan 11 13:53:47 2022
 
 @author: hcohe
 """
-
 
 import numpy as np
 import pandas as pd
@@ -14,7 +13,7 @@ import sys
 import threading
 
 
-sys.path.insert(0, 'C:\\Users\\hcohe\\Desktop\\codes\\SurveyProp-ver4')
+sys.path.insert(0, 'C:\\Users\\hcohe\\Desktop\\codes\\SurveyProp-ver3')
 from SurveyProp_classes import *
 
 global_lock_f1 = threading.Lock()
@@ -24,7 +23,7 @@ T = 20 #number of rounds
 res_dict={}
 res_per_itration_dict = {}
 
-class_type = RandomPlantedSAT
+class_type = randomKSAT
 
 def calc_hamming(vec1, vec2):
     ham_dist = 0
@@ -46,7 +45,7 @@ def SAT_test(n,c, test_it, algorithm, class_type):
     global T  
     max_iters = 1000
     k = 3 #number of literals per clause 
-    m = np.ceil(n*c)
+    m = int(np.ceil(n*c))
 
     res_arr = np.zeros(11)
     res_arr_per_iteration = np.zeros(11)
@@ -255,6 +254,6 @@ def main(n, algorithm):
 if __name__ == "__main__":
     #n = int(sys.argv[1])
     #algorithm = str(sys.argv[2])
-    n=50
-    algorithm = 'WP'
+    n=10
+    algorithm = 'SP'
     main(n, algorithm)
